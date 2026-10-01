@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo Instalando (solo la primera vez)...
+call npm install
+echo Abriendo SICAO...
+call npm start

@@ -1,0 +1,26 @@
+{
+  "name": "sicao",
+  "productName": "SICAO",
+  "version": "1.0.0",
+  "description": "SICAO - Sistema de Almacén de Obra",
+  "main": "main.js",
+  "author": "SICAO",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.sicao.almacen",
+    "productName": "SICAO",
+    "files": ["main.js", "app/**/*", "build/icon.png"],
+    "directories": { "output": "dist" },
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["portable"]
+    }
+  }
+}

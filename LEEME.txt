@@ -1,0 +1,5 @@
+1. Crea un repositorio nuevo en github.com
+2. Sube TODO el contenido de esta carpeta (apk, pc y la carpeta oculta .github)
+3. Pestana Actions -> "Crear APK y EXE" -> Run workflow
+4. Al terminar (10-15 min) descarga SICAO-apk y SICAO-exe en "Artifacts"
+Icono: casa con el texto SICAO (apk/resources/icon.png y pc/build/icon.png)
