@@ -12,6 +12,11 @@ jobs:
         working-directory: apk
     steps:
       - uses: actions/checkout@v4
+      - name: Traer la version actual de SICAO (GitHub Pages)
+        run: |
+          curl -fsSL "https://machacamamanilizandro31-boop.github.io/SICAO/" -o www/index.html
+          test "$(wc -c < www/index.html)" -gt 1000000
+          grep -q "Sistema de Almac" www/index.html
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -39,6 +44,12 @@ jobs:
         working-directory: pc
     steps:
       - uses: actions/checkout@v4
+      - name: Traer la version actual de SICAO (GitHub Pages)
+        shell: bash
+        run: |
+          curl -fsSL "https://machacamamanilizandro31-boop.github.io/SICAO/" -o app/index.html
+          test "$(wc -c < app/index.html)" -gt 1000000
+          grep -q "Sistema de Almac" app/index.html
       - uses: actions/setup-node@v4
         with:
           node-version: 20
