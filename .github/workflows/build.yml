@@ -2,7 +2,7 @@ name: Crear APK y EXE
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   apk:
@@ -12,23 +12,11 @@ jobs:
         working-directory: apk
     steps:
       - uses: actions/checkout@v4
-      - name: Traer la version actual de SICAO (GitHub Pages)
+      - name: Verificar index maestro de SICAO-V2
         run: |
-          curl -fsSL "https://machacamamanilizandro31-boop.github.io/SICAO/" -o www/index.html
-          test "$(wc -c < www/index.html)" -gt 1000000
-          grep -q "Sistema de Almac" www/index.html
-      - name: Activar descargas de reportes en la app
-        run: |
-          python3 - <<'PY'
-          p = 'www/index.html'
-          s = open(p, encoding='utf-8').read()
-          i = s.lower().find('<head')
-          assert 0 <= i < 5000, 'No se encontro <head>'
-          j = s.find('>', i) + 1
-          s = s[:j] + '<script src="sicao-puente.js"></script>' + s[j:]
-          open(p, 'w', encoding='utf-8').write(s)
-          PY
-          grep -q 'sicao-puente.js' www/index.html
+          curl -fsSL "https://raw.githubusercontent.com/machacamamanilizandro31-boop/SICAO-V2/main/index.html" -o /tmp/sicao-v2-index.html
+          test "$(wc -c < /tmp/sicao-v2-index.html)" -gt 1000000
+          grep -q "Sistema de Almac" /tmp/sicao-v2-index.html
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -56,12 +44,12 @@ jobs:
         working-directory: pc
     steps:
       - uses: actions/checkout@v4
-      - name: Traer la version actual de SICAO (GitHub Pages)
+      - name: Verificar index maestro de SICAO-V2
         shell: bash
         run: |
-          curl -fsSL "https://machacamamanilizandro31-boop.github.io/SICAO/" -o app/index.html
-          test "$(wc -c < app/index.html)" -gt 1000000
-          grep -q "Sistema de Almac" app/index.html
+          curl -fsSL "https://raw.githubusercontent.com/machacamamanilizandro31-boop/SICAO-V2/main/index.html" -o sicao-v2-index.html
+          test "$(wc -c < sicao-v2-index.html)" -gt 1000000
+          grep -q "Sistema de Almac" sicao-v2-index.html
       - uses: actions/setup-node@v4
         with:
           node-version: 20
