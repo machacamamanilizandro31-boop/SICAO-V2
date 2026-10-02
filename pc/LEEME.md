@@ -9,7 +9,7 @@ Instalar Node.js LTS desde https://nodejs.org
 ## Pasos
 1. Descomprime esta carpeta.
 2. Doble clic en `1-probar.bat` -> se abre SICAO como app (para verificar).
-3. Doble clic en `2-crear-exe.bat` -> crea `dist\SICAO 1.0.0.exe`.
+3. Doble clic en `2-crear-exe.bat` -> crea `dist\SICAO-Setup-1.0.0.exe (instalador)`.
    Ese .exe es portable: lo copias a cualquier PC y funciona sin instalar.
 
 ## Notas

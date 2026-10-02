@@ -16,7 +16,7 @@
   "build": {
     "appId": "com.sicao.almacen",
     "productName": "SICAO",
-    "files": ["main.js", "app/**/*", "build/icon.png"],
+    "files": ["main.js", "preload.js", "app/**/*", "build/icon.png"],
     "directories": { "output": "dist" },
     "win": {
       "icon": "build/icon.png",
