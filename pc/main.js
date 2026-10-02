@@ -1,6 +1,34 @@
 const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+
+const SICAO_MAESTRO_URL = 'https://raw.githubusercontent.com/machacamamanilizandro31-boop/SICAO-V2/main/index.html';
+
+function descargarMaestro(url, destino, redirecciones = 0) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'SICAO-Desktop' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirecciones < 5) {
+        res.resume();
+        return descargarMaestro(res.headers.location, destino, redirecciones + 1).then(resolve, reject);
+      }
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error('HTTP ' + res.statusCode));
+      }
+      let datos = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { datos += chunk; });
+      res.on('end', () => {
+        if (datos.length < 1000000 || !/Sistema de Almac/i.test(datos)) return reject(new Error('index remoto no valido'));
+        fs.writeFileSync(destino, datos, 'utf8');
+        resolve(destino);
+      });
+    });
+    req.setTimeout(15000, () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+  });
+}
 
 // Una sola ventana de SICAO a la vez
 if (!app.requestSingleInstanceLock()) {
@@ -35,7 +63,7 @@ ipcMain.handle('guardar-archivo', async (_evento, nombre, base64) => {
   return true;
 });
 
-function crearVentana() {
+async function crearVentana() {
   Menu.setApplicationMenu(null);            // sin menu File/Edit/View...
   win = new BrowserWindow({
     width: 1280,
@@ -54,7 +82,20 @@ function crearVentana() {
   });
 
   win.maximize();
-  win.loadFile(path.join(__dirname, 'app', 'index.html'));
+
+  // En cada inicio intenta bajar el index maestro de SICAO-V2.
+  // Si no hay Internet, usa la ultima copia descargada; si tampoco existe, usa la incluida en el instalador.
+  const cacheDir = app.getPath('userData');
+  const cacheIndex = path.join(cacheDir, 'sicao-index-remoto.html');
+  const indexIncluido = path.join(__dirname, 'app', 'index.html');
+  let indexACargar = cacheIndex;
+  try {
+    await descargarMaestro(SICAO_MAESTRO_URL, cacheIndex);
+  } catch (e) {
+    console.warn('No se pudo actualizar SICAO desde GitHub:', e.message);
+    if (!fs.existsSync(cacheIndex)) indexACargar = indexIncluido;
+  }
+  await win.loadFile(indexACargar);
 
   // Hace que SICAO crea que esta en su version de escritorio: asi envia el
   // Excel ya armado en vez de copiarlo al portapapeles (solo sirve en el complemento).
