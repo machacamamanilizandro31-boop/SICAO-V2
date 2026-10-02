@@ -17,6 +17,18 @@ jobs:
           curl -fsSL "https://machacamamanilizandro31-boop.github.io/SICAO/" -o www/index.html
           test "$(wc -c < www/index.html)" -gt 1000000
           grep -q "Sistema de Almac" www/index.html
+      - name: Activar descargas de reportes en la app
+        run: |
+          python3 - <<'PY'
+          p = 'www/index.html'
+          s = open(p, encoding='utf-8').read()
+          i = s.lower().find('<head')
+          assert 0 <= i < 5000, 'No se encontro <head>'
+          j = s.find('>', i) + 1
+          s = s[:j] + '<script src="sicao-puente.js"></script>' + s[j:]
+          open(p, 'w', encoding='utf-8').write(s)
+          PY
+          grep -q 'sicao-puente.js' www/index.html
       - uses: actions/setup-node@v4
         with:
           node-version: 20
