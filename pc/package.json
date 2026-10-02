@@ -7,7 +7,7 @@
   "author": "SICAO",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win nsis"
   },
   "devDependencies": {
     "electron": "^31.7.7",
@@ -20,7 +20,16 @@
     "directories": { "output": "dist" },
     "win": {
       "icon": "build/icon.png",
-      "target": ["portable"]
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SICAO",
+      "artifactName": "SICAO-Setup-${version}.exe"
     }
   }
 }
