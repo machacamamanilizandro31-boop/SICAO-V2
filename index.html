@@ -3821,7 +3821,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
                 };
             }
             function currentWorkspaceKey() {
-                if (supervisionWorkspaceKey) return supervisionWorkspaceKey;
                 if (currentRole === 'operador' && currentOperatorId != null) return 'operator:' + currentOperatorId;
                 if (currentRole === 'revendedor' && currentOperatorId != null) return 'reseller:' + currentOperatorId;
                 return 'admin';
@@ -4503,8 +4502,6 @@ ${bodyHtml}
             let currentRole = 'admin';
             let currentOperatorId = null;
             let currentAccountKind = null; // 'operador' | 'revendedor' | null
-            let supervisionWorkspaceKey = null;
-            let supervisionAccountLabel = '';
             let sessionMonitorTimer = null;
 
             function startSessionMonitor() {
@@ -4830,10 +4827,6 @@ ${bodyHtml}
                 stopSessionMonitor();
                 currentOperatorId = null;
                 currentAccountKind = null;
-                supervisionWorkspaceKey = null;
-                supervisionAccountLabel = '';
-                const supervisionBar = document.getElementById('kob-supervision-bar');
-                if (supervisionBar) supervisionBar.remove();
                 $('#kob-shell').classList.remove('show');
                 $('#kob-screen-licencia').style.display = 'none';
                 $('#kob-screen-login').style.display = 'flex';
@@ -8110,34 +8103,6 @@ ${bodyHtml}
                 toast('Acceso de administrador restablecido. Ya puedes ingresar.', 'green');
             });
 
-            function mostrarBarraSupervision() {
-                let bar = document.getElementById('kob-supervision-bar');
-                if (!supervisionWorkspaceKey) {
-                    if (bar) bar.remove();
-                    return;
-                }
-                if (!bar) {
-                    bar = document.createElement('div');
-                    bar.id = 'kob-supervision-bar';
-                    bar.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:99999;background:#fff3cd;border:1px solid #f0c36d;color:#5f4500;padding:8px 12px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.18);font-weight:700;display:flex;gap:10px;align-items:center;';
-                    document.body.appendChild(bar);
-                }
-                bar.innerHTML = '<span>👁 Supervisando: ' + supervisionAccountLabel + '</span><button id="kob-supervision-volver" class="kob-mini-btn blue">↩ Volver a mi sistema</button>';
-                const volver = document.getElementById('kob-supervision-volver');
-                if (volver) volver.onclick = () => {
-                    supervisionWorkspaceKey = null;
-                    supervisionAccountLabel = '';
-                    bar.remove();
-                    hydrateUI();
-                    showPanel('config');
-                    renderConfigPanel();
-                    $$('.kob-nav-item[data-panel]').forEach(x => x.classList.remove('active'));
-                    const cfgBtn = $('[data-panel="config"].kob-nav-item');
-                    if (cfgBtn) cfgBtn.classList.add('active');
-                    toast('Volviste a tu sistema', 'green');
-                };
-            }
-
             function renderLicensedAccounts(cfg) {
                 const tbody = $('#' + cfg.tbodyId);
                 if (!tbody) return;
@@ -8156,7 +8121,6 @@ ${bodyHtml}
                 const removeAttr = 'data-' + cfg.attr + '-remove';
                 const histAttr = 'data-' + cfg.attr + '-hist';
                 const freeDevAttr = 'data-' + cfg.attr + '-freedev';
-                const viewAttr = 'data-' + cfg.attr + '-view';
                 tbody.innerHTML = list.map(o => {
                     const vencido = isOperatorExpired(o);
                     const tipoTxt = licenseTipoLabel(o.licenseType || 'mensual');
@@ -8184,7 +8148,6 @@ ${bodyHtml}
             <td class="kob-mono" style="${vencido ? 'color:var(--red);' : ''}">${licTxt}</td>
             <td class="kob-mono">${dispTxt}</td>
             <td>
-              <button class="kob-mini-btn green" ${viewAttr}="${o.id}">👁 Ver sistema</button>
               <button class="kob-mini-btn blue" ${keyAttr}="${o.id}">Ver clave</button>
               <button class="kob-mini-btn blue" ${renewAttr}="${o.id}">Renovar licencia</button>
               <button class="kob-mini-btn blue" ${resetPassAttr}="${o.id}">Restablecer contraseña</button>
@@ -8196,27 +8159,6 @@ ${bodyHtml}
             </td>
           </tr>`;
                 }).join('');
-                tbody.querySelectorAll('[' + viewAttr + ']').forEach(b => {
-                    b.addEventListener('click', () => {
-                        const id = b.getAttribute(viewAttr);
-                        const op = (state[cfg.listKey] || []).find(o => String(o.id) === String(id));
-                        if (!op) return;
-                        if (currentRole === 'revendedor' && !(cfg.listKey === 'operators' && op.ownerType === 'revendedor' && String(op.ownerId) === String(currentOperatorId))) {
-                            toast('Solo puedes ver el sistema de tus propios clientes', 'red');
-                            return;
-                        }
-                        supervisionWorkspaceKey = (cfg.listKey === 'resellers' ? 'reseller:' : 'operator:') + id;
-                        supervisionAccountLabel = (cfg.listKey === 'resellers' ? 'Revendedor: ' : 'Cliente: ') + op.username;
-                        hydrateUI();
-                        showPanel('inicio');
-                        renderInicio();
-                        $$('.kob-nav-item[data-panel]').forEach(x => x.classList.remove('active'));
-                        const inicioBtn = $('[data-panel="inicio"].kob-nav-item');
-                        if (inicioBtn) inicioBtn.classList.add('active');
-                        mostrarBarraSupervision();
-                        toast('Visualizando el sistema de ' + op.username, 'green');
-                    });
-                });
                 tbody.querySelectorAll('[' + freeDevAttr + ']').forEach(b => {
                     b.addEventListener('click', async () => {
                         const id = b.getAttribute(freeDevAttr);
