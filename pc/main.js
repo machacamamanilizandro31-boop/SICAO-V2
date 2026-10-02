@@ -1,24 +1,20 @@
 const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
-// Una sola ventana de SICAO a la vez
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
-}
+const SICAO_MAESTRO = 'https://raw.githubusercontent.com/machacamamanilizandro31-boop/SICAO-V2/main/index.html';
+
+if (!app.requestSingleInstanceLock()) app.quit();
 
 let win;
 
-// Si ya existe un archivo con ese nombre, agrega (1), (2)...
 function rutaLibre(carpeta, nombre) {
   const ext = path.extname(nombre);
   const base = path.basename(nombre, ext);
   let destino = path.join(carpeta, nombre);
   let n = 1;
-  while (fs.existsSync(destino)) {
-    destino = path.join(carpeta, `${base} (${n})${ext}`);
-    n++;
-  }
+  while (fs.existsSync(destino)) destino = path.join(carpeta, `${base} (${n++})${ext}`);
   return destino;
 }
 
@@ -27,16 +23,53 @@ function nombreSeguro(nombre, porDefecto) {
   return limpio || porDefecto;
 }
 
-// SICAO envia aqui los reportes Excel (como lo hace con SICAO.Desktop)
+function descargarMaestro(destino) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(SICAO_MAESTRO + '?t=' + Date.now(), {
+      headers: { 'User-Agent': 'SICAO-V2-PC', 'Cache-Control': 'no-cache' }
+    }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();
+        https.get(res.headers.location, r2 => guardarRespuesta(r2, destino, resolve, reject))
+          .on('error', reject);
+        return;
+      }
+      guardarRespuesta(res, destino, resolve, reject);
+    });
+    req.setTimeout(15000, () => req.destroy(new Error('Tiempo de espera agotado')));
+    req.on('error', reject);
+  });
+}
+
+function guardarRespuesta(res, destino, resolve, reject) {
+  if (res.statusCode !== 200) {
+    res.resume();
+    reject(new Error('HTTP ' + res.statusCode));
+    return;
+  }
+  let datos = '';
+  res.setEncoding('utf8');
+  res.on('data', c => datos += c);
+  res.on('end', () => {
+    if (datos.length < 1000000 || !datos.includes('Sistema de Almac')) {
+      reject(new Error('El index maestro recibido no es valido'));
+      return;
+    }
+    fs.writeFileSync(destino, datos, 'utf8');
+    resolve(destino);
+  });
+  res.on('error', reject);
+}
+
 ipcMain.handle('guardar-archivo', async (_evento, nombre, base64) => {
   const destino = rutaLibre(app.getPath('downloads'), nombreSeguro(nombre, 'reporte.xlsx'));
   fs.writeFileSync(destino, Buffer.from(String(base64), 'base64'));
-  shell.showItemInFolder(destino);   // abre la carpeta con el archivo seleccionado
+  shell.showItemInFolder(destino);
   return true;
 });
 
-function crearVentana() {
-  Menu.setApplicationMenu(null);            // sin menu File/Edit/View...
+async function crearVentana() {
+  Menu.setApplicationMenu(null);
   win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -54,10 +87,20 @@ function crearVentana() {
   });
 
   win.maximize();
-  win.loadFile(path.join(__dirname, 'app', 'index.html'));
 
-  // Hace que SICAO crea que esta en su version de escritorio: asi envia el
-  // Excel ya armado en vez de copiarlo al portapapeles (solo sirve en el complemento).
+  const cacheDir = app.getPath('userData');
+  const cacheMaestro = path.join(cacheDir, 'sicao-v2-maestro.html');
+  const respaldoInstalado = path.join(__dirname, 'app', 'index.html');
+
+  try {
+    await descargarMaestro(cacheMaestro);
+    await win.loadFile(cacheMaestro);
+  } catch (e) {
+    console.error('No se pudo actualizar SICAO-V2:', e.message);
+    if (fs.existsSync(cacheMaestro)) await win.loadFile(cacheMaestro);
+    else await win.loadFile(respaldoInstalado);
+  }
+
   win.webContents.on('dom-ready', () => {
     win.webContents.executeJavaScript(`
       window.chrome = window.chrome || {};
@@ -73,7 +116,6 @@ function crearVentana() {
     `).catch(() => {});
   });
 
-  // Cualquier otra descarga (PDF, fotos, respaldos) va directo a Descargas
   win.webContents.session.on('will-download', (_e, item) => {
     const destino = rutaLibre(app.getPath('downloads'), nombreSeguro(item.getFilename(), 'archivo'));
     item.setSavePath(destino);
@@ -82,10 +124,8 @@ function crearVentana() {
     });
   });
 
-  // El titulo lo controla la app, no la pagina
-  win.on('page-title-updated', (e) => e.preventDefault());
+  win.on('page-title-updated', e => e.preventDefault());
 
-  // Enlaces externos (http/https) se abren en el navegador del sistema
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) {
       shell.openExternal(url);
