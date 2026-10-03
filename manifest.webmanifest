@@ -1,0 +1,24 @@
+{
+  "name": "SICAO - Sistema de Almacén de Obra",
+  "short_name": "SICAO",
+  "id": "/SICAO-V2/",
+  "start_url": "/SICAO-V2/index.html?origen=complemento",
+  "scope": "/SICAO-V2/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#17324d",
+  "icons": [
+    {
+      "src": "/SICAO-V2/apk/resources/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/SICAO-V2/apk/resources/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
